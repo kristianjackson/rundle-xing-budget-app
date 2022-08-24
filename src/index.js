@@ -113,7 +113,27 @@ function loadMessages() {
 // Saves a new message containing an image in Firebase.
 // This first saves the image in Firebase storage.
 async function saveImageMessage(file) {
-  // TODO 9: Posts a new image as a message.
+  try {
+    const messageRef = await addDoc(collection(getFirestore(), 'messages'), {
+      name: getUserName(),
+      imageUrl: LOADING_IMAGE_URL,
+      profilePicUrl: getProfilePicUrl(),
+      timestamp: serverTimestamp()
+    });
+
+    const filePath = `${getAuth().currentUser.uid}/${messageRef.id}/${file.name}`;
+    const newImageRef = ref(getStorage(), filePath);
+    const fileSnapshot = await uploadBytesResumable(newImageRef, file);
+
+    const publicImageUrl = await getDownloadURL(newImageRef);
+
+    await updateDoc(messageRef, {
+      imageUrl: publicImageUrl,
+      storageUri: fileSnapshot.metadata.fullPath
+    });
+  } catch (error) {
+    console.error('There was an error uploading a file to Cloud Storage:', error);
+  }
 }
 
 // Saves the messaging device token to Cloud Firestore.
